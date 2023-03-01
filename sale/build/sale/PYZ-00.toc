@@ -1,4 +1,4 @@
-('/Users/guava/Desktop/sale/build/sale/PYZ-00.pyz',
+('/Users/guava/Desktop/591_python/sale/build/sale/PYZ-00.pyz',
  [('IPython',
    '/Users/guava/Library/Python/3.8/lib/python/site-packages/IPython/__init__.py',
    'PYMODULE'),

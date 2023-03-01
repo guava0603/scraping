@@ -51,96 +51,100 @@ def collect_data(_para):
     pageSource = _driver.page_source  # 取得網頁原始碼
     soup = BeautifulSoup(pageSource, 'html.parser')
     
-    title_element = soup.select('.detail-title-content')
-    if len(title_element) < 1:
-        title_element = soup.select('.build-name')
-    title = title_element[0].text.strip()
-    
-    price_element = soup.select('.info-price-left')
-    price = ''
-    if (len(price_element) > 0):
-        p1 = price_element[0].select('.info-price-num')[0].text.strip()
-        price_dump = soup.select('.sale-fluctuation')
-        if len(price_dump) > 0:
-            p1 = p1.split(' ')[0]
-            print('after: ', p1)
-        price = p1 + price_element[0].select('.info-price-unit')[0].text.strip()
-    else:
-        price_element = soup.select('.build-price')
-        p1 = price_element[0].select('.price')
-        p2 = price_element[0].select('.unit')
-        p1 = p1[0].text.strip() if len(p1) > 0 else ''
-        p2 = p2[0].text.strip() if len(p2) > 0 else ''
-        price = p1+p2
-    
-    res = {
-        '名稱': title,
-        '價格': price,
-        '縣市': _region,
-        '鄉鎮區': _section
-    }
-    
-    phone_ele = soup.select('.info-host-phone .info-host-word')
-    if (len(phone_ele) > 0):
-        res['電話'] = ','.join([p.text.strip() for p in phone_ele])
-    else:
-        phone_ele = soup.select('.call-phone .phone strong')
-        res['電話'] = ','.join([p.text.strip() for p in phone_ele])
-    
-    price_per_element = soup.select('.info-price-per')
-    if (len(price_per_element) > 0):
-        t = price_per_element[0].text.strip()
-        label = t.split(':')[0].strip()
-        txt = t.split(':')[1].strip()
-        res[label] = txt
-        
-    
-    other_info = soup.select('.info-price-pay')
-    for info in other_info:
-        label_ele = info.select('span.tag')
-        text_ele = info.select('a')
-        if len(label_ele) > 0 and len(text_ele) > 0:
-            label = label_ele[0].text.strip().replace('：','')
-            txt = text_ele[0].text.strip()
-            res[label] = txt
-    
-    other_info = soup.select('.info-item')
-    for info in other_info:
-        label_ele = info.select('span.label')
-        text_ele = info.select('span.text')
-        if len(label_ele) > 0 and len(text_ele) > 0:
-            label = label_ele[0].text.strip()
-            txt = text_ele[0].text.strip()
-            res[label] = txt
-        
-    other_info = soup.select('.info-floor-left')
-    for info in other_info:
-        label = info.select('.info-floor-value')[0].text.strip()
-        txt = info.select('.info-floor-key')[0].text.strip()
-        res[label] = txt
-        
-    other_info = soup.select('.info-addr-content')
-    for info in other_info:
-        label = info.select('.info-addr-key')[0].text.strip()
-        txt = info.select('.info-addr-value')[0].text.strip()
-        res[label] = txt
-    
-    address_ele = soup.select('.info-addr-value a')
-    if len(address_ele) > 0:
-        _driver.find_element_by_css_selector('.info-addr-value a.info-addr-tip').click()
-        time.sleep(3)
-        
-        iframe = _driver.find_element(By.CSS_SELECTOR, "iframe#detail-map-free")
-        _driver.switch_to.frame(iframe)
-        address = _driver.find_elements_by_css_selector('.address')
-        if len(address) > 0:
-            res['地址'] = address[0].text.strip()
-    else:
-        address_ele = soup.select('.info-item.address .address-right')
-        if len(address_ele) > 0:
-            res['地址'] = address_ele[0].text.strip().replace('查看地圖>', '')
+    try:
+        title_element = soup.select('.detail-title-content')
+        if len(title_element) < 1:
+            title_element = soup.select('.build-name')
+        title = title_element[0].text.strip()
+
+        price_element = soup.select('.info-price-left')
+        price = ''
+        if (len(price_element) > 0):
+            p1 = price_element[0].select('.info-price-num')[0].text.strip()
+            price_dump = soup.select('.sale-fluctuation')
+            if len(price_dump) > 0:
+                p1 = p1.split(' ')[0]
+                print('after: ', p1)
+            price = p1 + price_element[0].select('.info-price-unit')[0].text.strip()
         else:
-            print('找不到', title , '地址')
+            price_element = soup.select('.build-price')
+            p1 = price_element[0].select('.price')
+            p2 = price_element[0].select('.unit')
+            p1 = p1[0].text.strip() if len(p1) > 0 else ''
+            p2 = p2[0].text.strip() if len(p2) > 0 else ''
+            price = p1+p2
+
+        res = {
+            '名稱': title,
+            '價格': price,
+            '縣市': _region,
+            '鄉鎮區': _section
+        }
+
+        phone_ele = soup.select('.info-host-phone .info-host-word')
+        if (len(phone_ele) > 0):
+            res['電話'] = ','.join([p.text.strip() for p in phone_ele])
+        else:
+            phone_ele = soup.select('.call-phone .phone strong')
+            res['電話'] = ','.join([p.text.strip() for p in phone_ele])
+
+        price_per_element = soup.select('.info-price-per')
+        if (len(price_per_element) > 0):
+            t = price_per_element[0].text.strip()
+            label = t.split(':')[0].strip()
+            txt = t.split(':')[1].strip()
+            res[label] = txt
+
+
+        other_info = soup.select('.info-price-pay')
+        for info in other_info:
+            label_ele = info.select('span.tag')
+            text_ele = info.select('a')
+            if len(label_ele) > 0 and len(text_ele) > 0:
+                label = label_ele[0].text.strip().replace('：','')
+                txt = text_ele[0].text.strip()
+                res[label] = txt
+
+        other_info = soup.select('.info-item')
+        for info in other_info:
+            label_ele = info.select('span.label')
+            text_ele = info.select('span.text')
+            if len(label_ele) > 0 and len(text_ele) > 0:
+                label = label_ele[0].text.strip()
+                txt = text_ele[0].text.strip()
+                res[label] = txt
+
+        other_info = soup.select('.info-floor-left')
+        for info in other_info:
+            label = info.select('.info-floor-value')[0].text.strip()
+            txt = info.select('.info-floor-key')[0].text.strip()
+            res[label] = txt
+
+        other_info = soup.select('.info-addr-content')
+        for info in other_info:
+            label = info.select('.info-addr-key')[0].text.strip()
+            txt = info.select('.info-addr-value')[0].text.strip()
+            res[label] = txt
+
+        address_ele = soup.select('.info-addr-value a')
+        if len(address_ele) > 0:
+            _driver.find_element_by_css_selector('.info-addr-value a.info-addr-tip').click()
+            time.sleep(3)
+
+            iframe = _driver.find_element(By.CSS_SELECTOR, "iframe#detail-map-free")
+            _driver.switch_to.frame(iframe)
+            address = _driver.find_elements_by_css_selector('.address')
+            if len(address) > 0:
+                res['地址'] = address[0].text.strip()
+        else:
+            address_ele = soup.select('.info-item.address .address-right')
+            if len(address_ele) > 0:
+                res['地址'] = address_ele[0].text.strip().replace('查看地圖>', '')
+            else:
+                print('找不到', title , '地址')
+    except:
+        print('Something wrong. ', _website)
+        res = {}
     
     _driver.close()
     return res

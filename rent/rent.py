@@ -51,45 +51,54 @@ def collect_data(_website):
     soup = BeautifulSoup(pageSource, 'html.parser')
     
     title_element = soup.select('.house-title h1')
+    title = ''
     if len(title_element) > 0:
         title = title_element[0].text.strip()
     else:
-        print('no title')
+        print('[no title] ', _website)
     
     price_element = soup.select('.house-price span.price')
+    price = ''
     if (len(price_element) > 0):
         price = price_element[0].text.strip()
+    else:
+        print('[no price] ', _website)
         
     pattern_element = soup.select('.house-pattern > span')
     patterns = [p.text for p in pattern_element]
     while '' in patterns: patterns.remove('')
+    while len(patterns) < 4: patterns.append('')
     
     address_element = soup.select('.address .load-map')
+    address = ''
     if len(address_element) > 0:
         address = address_element[0].text.strip()
     
-    res = {
-        '名稱': title,
-        '租金': price,
-        '格局': patterns[0],
-        '坪數': patterns[1],
-        '樓層': patterns[2],
-        '房屋類型': patterns[3],
-        '位置': address
-    }
+    res = {}
+    try:
+        res = {
+            '名稱': title,
+            '租金': price,
+            '格局': patterns[0],
+            '坪數': patterns[1],
+            '樓層': patterns[2],
+            '房屋類型': patterns[3],
+            '位置': address
+        }
     
-    around_ele = soup.select('.surround-list-item')
-    for around in around_ele:
-        a_key = soup.select('.surround-list-box .name')[0].text
-        a_val = [p.text.strip() for p in soup.select('.surround-list-box > p')]
-        other_val = [p.text.strip() for p in soup.select('.surround-list-text > p')]
-        res[a_key] = '|'.join(a_val + other_val)
+        around_ele = soup.select('.surround-list-item')
+        for around in around_ele:
+            a_key = soup.select('.surround-list-box .name')[0].text
+            a_val = [p.text.strip() for p in soup.select('.surround-list-box > p')]
+            other_val = [p.text.strip() for p in soup.select('.surround-list-text > p')]
+            res[a_key] = '|'.join(a_val + other_val)
+
+        phone_ele = soup.select('#rightConFixed .reference .tel-txt')
+        if (len(phone_ele) > 0):
+            res['聯絡電話'] = ','.join([p.text.strip() for p in phone_ele])
     
-    phone_ele = soup.select('#rightConFixed .reference .tel-txt')
-    if (len(phone_ele) > 0):
-        res['聯絡電話'] = ','.join([p.text.strip() for p in phone_ele])
-    
-#     print(res['名稱'])
+    except:
+        print('Something wrong. ', _website)
     
     _driver.close()
     return res
@@ -170,7 +179,7 @@ chrome.close()  # 關閉瀏覽器
 # In[ ]:
 
 
-name = str(total_rows) + '_' + '屋主直租_' + region_list[region] + "_" + f"{datetime.now():%Y%m%d-%H%M}" + ".xlsx"
+name = './' + str(total_rows) + '_' + '屋主直租_' + region_list[region] + "_" + f"{datetime.now():%Y%m%d-%H%M}" + ".xlsx"
 df = pd.DataFrame(data=data)
 df.to_excel(name, index=False)
 
