@@ -57,6 +57,21 @@ def collect_data(_website):
     else:
         print('[no title] ', _website)
     
+    
+    name_element = soup.select('.contact-info .base-info .name')
+    name = ''
+    if len(name_element) > 0:
+        name = name_element[0].text.strip()
+        warn_element = soup.select('.contact-info .base-info .name .warmmsg')
+        if len(warn_element) > 0:
+            warn_msg = warn_element[0].text.strip()
+            name = name.replace(warn_msg, '').strip()
+        name_arr = name.split(': ')
+        while len(name_arr) < 2:
+            name_arr = [''] + name_arr
+    else:
+        print('[no name] ', _website)
+    
     price_element = soup.select('.house-price span.price')
     price = ''
     if (len(price_element) > 0):
@@ -74,10 +89,12 @@ def collect_data(_website):
     if len(address_element) > 0:
         address = address_element[0].text.strip()
     
-    res = {}
+    res = {'網址': _website}
     try:
         res = {
             '名稱': title,
+            '聯絡人身份': name_arr[0],
+            '聯絡人稱謂': name_arr[1],
             '租金': price,
             '格局': patterns[0],
             '坪數': patterns[1],
@@ -130,9 +147,10 @@ website = "https://rent.591.com.tw/?region=" + region
 
 
 data = []
+err_data = []
 
 
-# In[ ]:
+# In[6]:
 
 
 chrome = open_website(website)
@@ -161,11 +179,15 @@ while first_row < total_rows:
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         result = list(executor.map(collect_data, all_href))
-        data += result
+        for x in result:
+            if x.get('網址'):
+                err_data.append(x)
+            else:
+                data.append(x)
         
     end_time = time.time()
     
-    print(len(data), '/', total_rows, ' ... ', end_time-start_time, '秒')
+    print(len(data), '/', total_rows, '(P.', int(first_row / 30) + 1, ') ... ', end_time-start_time, '秒')
     
     first_row += 30
 
@@ -182,6 +204,19 @@ chrome.close()  # 關閉瀏覽器
 name = './' + str(total_rows) + '_' + '屋主直租_' + region_list[region] + "_" + f"{datetime.now():%Y%m%d-%H%M}" + ".xlsx"
 df = pd.DataFrame(data=data)
 df.to_excel(name, index=False)
+print('共有', len(data), '筆成功抓取的資料，已輸出至"', name, '"檔案')
+
+
+# In[ ]:
+
+
+if len(err_data) > 0:
+    name = './' + '屋主直租_' + region_list[region] + "(問題資料)_" + f"{datetime.now():%Y%m%d-%H%M}" + ".xlsx"
+    print('共有', len(err_data), '筆無法抓取的資料，已輸出至"', name, '"檔案')
+    df = pd.DataFrame(data=err_data)
+    df.to_excel(name, index=False)
+else:
+    print('資料全數抓取成功')
 
 
 #  

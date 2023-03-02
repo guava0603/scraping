@@ -51,11 +51,18 @@ def collect_data(_para):
     pageSource = _driver.page_source  # 取得網頁原始碼
     soup = BeautifulSoup(pageSource, 'html.parser')
     
+    res = { '網址': _website }
     try:
         title_element = soup.select('.detail-title-content')
-        if len(title_element) < 1:
+        title = ''
+        if len(title_element) > 0:
+            title = title_element[0].text.strip()
+        else:
             title_element = soup.select('.build-name')
-        title = title_element[0].text.strip()
+            if len(title_element) > 0:
+                title = title_element[0].text.strip()
+            else:
+                print('[no title] ', _website)
 
         price_element = soup.select('.info-price-left')
         price = ''
@@ -64,15 +71,17 @@ def collect_data(_para):
             price_dump = soup.select('.sale-fluctuation')
             if len(price_dump) > 0:
                 p1 = p1.split(' ')[0]
-                print('after: ', p1)
             price = p1 + price_element[0].select('.info-price-unit')[0].text.strip()
         else:
             price_element = soup.select('.build-price')
-            p1 = price_element[0].select('.price')
-            p2 = price_element[0].select('.unit')
-            p1 = p1[0].text.strip() if len(p1) > 0 else ''
-            p2 = p2[0].text.strip() if len(p2) > 0 else ''
-            price = p1+p2
+            if len(price_element) > 0:
+                p1 = price_element[0].select('.price')
+                p2 = price_element[0].select('.unit')
+                p1 = p1[0].text.strip() if len(p1) > 0 else ''
+                p2 = p2[0].text.strip() if len(p2) > 0 else ''
+                price = p1+p2
+            else:
+                print('[no price] ', _website)
 
         res = {
             '名稱': title,
@@ -86,7 +95,10 @@ def collect_data(_para):
             res['電話'] = ','.join([p.text.strip() for p in phone_ele])
         else:
             phone_ele = soup.select('.call-phone .phone strong')
-            res['電話'] = ','.join([p.text.strip() for p in phone_ele])
+            if (len(phone_ele) > 0):
+                res['電話'] = ','.join([p.text.strip() for p in phone_ele])
+            else:
+                print('[no phone] ', _website)
 
         price_per_element = soup.select('.info-price-per')
         if (len(price_per_element) > 0):
@@ -144,7 +156,6 @@ def collect_data(_para):
                 print('找不到', title , '地址')
     except:
         print('Something wrong. ', _website)
-        res = {}
     
     _driver.close()
     return res
@@ -189,15 +200,17 @@ website = "https://sale.591.com.tw/?shType=list&regionid=" + region + "&role=" +
 
 
 data = []
+err_data = []
 
 
-# In[6]:
+# In[ ]:
 
 
 chrome = open_website(website)
+time.sleep(3)
 
 test = 0
-first_row = 0
+first_row = 810
 total_rows = int(chrome.find_element_by_css_selector('.houseList-head-title em').text)
 
 print('共有', total_rows, '筆')
@@ -214,27 +227,44 @@ while first_row < total_rows:
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         result = list(executor.map(collect_data, all_para))
-        data += result
+        for x in result:
+            if x.get('網址'):
+                err_data.append(x)
+            else:
+                data.append(x)
     
     end_time = time.time()
     
-    print(len(data), '/', total_rows, ' ... ', end_time-start_time, '秒')
+    print(len(data), '/', total_rows, '(P.', int(first_row / 30) + 1, ') ... ', end_time-start_time, '秒')
     
     first_row += 30
 
 
-# In[7]:
+# In[ ]:
 
 
 chrome.close()  # 關閉瀏覽器
 
 
-# In[8]:
+# In[ ]:
 
 
 name = './' + str(total_rows) + "_" + region_list[region] + "_" + role_list[role] + "_" + f"{datetime.now():%Y%m%d-%H%M}" + ".xlsx"
 df = pd.DataFrame(data=data)
 df.to_excel(name, index=False)
+print('共有', len(data), '筆成功抓取的資料，已輸出至"', name, '"檔案')
+
+
+# In[ ]:
+
+
+if len(err_data) > 0:
+    name = './' + region_list[region] + "_" + role_list[role] + "_" + f"{datetime.now():%Y%m%d-%H%M}" + ".xlsx"
+    df = pd.DataFrame(data=err_data)
+    df.to_excel(name, index=False)
+    print('共有', len(err_data), '筆無法抓取的資料，已輸出至"', name, '"檔案')
+else:
+    print('資料全數抓取成功')
 
 
 #  
